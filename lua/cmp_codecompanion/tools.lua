@@ -1,10 +1,7 @@
-local tools = require("codecompanion.strategies.chat.tools").new().tools
-local variables = require("codecompanion.strategies.chat.variables").new().vars
-
 local source = {}
 
-function source.new()
-  return setmetatable({}, { __index = source })
+function source.new(config)
+  return setmetatable({ config = config }, { __index = source })
 end
 
 function source:is_available()
@@ -16,31 +13,29 @@ source.get_position_encoding_kind = function()
 end
 
 function source:get_trigger_characters()
-  return { "@", "#" }
+  return { "@" }
 end
 
 function source:get_keyword_pattern()
   return [[\%(@\|#\|/\)\k*]]
 end
 
-function source:complete(_, callback)
+function source:complete(params, callback)
   local items = {}
-  local kind = require("cmp").lsp.CompletionItemKind.Variable
+  local kind = require("cmp").lsp.CompletionItemKind.Snippet
 
-  for label, data in pairs(variables) do
-    table.insert(items, {
-      label = "#" .. label,
-      kind = kind,
-      detail = data.description,
-    })
-  end
-
-  for label, data in pairs(tools) do
+  for label, data in pairs(self.config.strategies.agent.tools) do
     if label ~= "opts" then
       table.insert(items, {
         label = "@" .. label,
         kind = kind,
+        name = label,
+        config = self.config,
+        callback = data.callback,
         detail = data.description,
+        context = {
+          bufnr = params.context.bufnr,
+        },
       })
     end
   end
